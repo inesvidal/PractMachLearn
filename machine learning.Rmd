@@ -1,0 +1,73 @@
+---
+title: "Machine Learning Project"
+author: "Andrew Rosa"
+date: "January 29, 2016"
+output: html_document
+---
+
+###Overview###
+
+From Assignment:
+Using devices such as Jawbone Up, Nike FuelBand, and Fitbit it is now possible to collect a large amount of data about personal activity relatively inexpensively. These type of devices are part of the quantified self movement – a group of enthusiasts who take measurements about themselves regularly to improve their health, to find patterns in their behavior, or because they are tech geeks. One thing that people regularly do is quantify how much of a particular activity they do, but they rarely quantify how well they do it. In this project, your goal will be to use data from accelerometers on the belt, forearm, arm, and dumbell of 6 participants. They were asked to perform barbell lifts correctly and incorrectly in 5 different ways. More information is available from the website here: http://groupware.les.inf.puc-rio.br/har (see the section on the Weight Lifting Exercise Dataset).
+
+The Goal of this assignment is to use this data to create a predictor that will predict which excersize a subject did. 
+
+###Load Packages###
+
+```{r, cache=TRUE}
+library(dplyr)
+library(caret)
+```
+
+###Set Seed and Load Data###
+
+```{r, cache=TRUE}
+set.seed(54321)
+
+TrainingData <- read.csv("/Users/andrewrosa/Desktop/pml-training.csv", na.strings=c("NA","#DIV/0!",""))
+TestData <- read.csv("/Users/andrewrosa/Desktop/pml-testing.csv", na.strings=c("NA","#DIV/0!",""))
+```
+
+###Divide and Clean Data Into Training & Test Sets###
+
+```{r, cache=TRUE}
+Train <- createDataPartition(y=TrainingData$classe, p=0.6, list=FALSE)
+Training <- TrainingData[Train, ] 
+Testing <- TrainingData[-Train, ]
+
+
+TrainClean <- Training[, apply(Training, 2, function(x) !any(is.na(x)))]
+TestClean <- Testing[, apply(Testing, 2, function(x) !any(is.na(x)))]
+ValSet <- TestData[, apply(TestData, 2, function(x) !any(is.na(x)))]
+```
+
+###Create a Predictive Model##
+```{r, cache=TRUE}
+fitCon <- trainControl(method="cv", number=5, allowParallel=T, verbose=T)
+rffit <- train(classe~.,data=TrainClean, method="rf", trControl=fitCon, verbose=F)
+```
+
+###Run Tests###
+
+```{r, cache=TRUE}
+predrf <- predict(rffit, newdata=TestClean)
+confusionMatrix(predrf, TestClean$classe)
+predValSet <- predict(rffit, newdata=ValSet)
+```
+
+###Save Files###
+
+```{r, cache=TRUE}
+getwd()
+pml_write_files = function(x){
+  n = length(x)
+  for(i in 1:n){
+    filename = paste0("problem_id_",i,".txt")
+    write.table(x[i],file=filename,quote=FALSE,row.names=FALSE,col.names=FALSE)
+  }
+}
+pml_write_files(predValSet)
+
+```
+
+
